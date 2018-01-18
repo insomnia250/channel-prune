@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
-
+import scipy.stats as stats
 
 # __all__ = ['Inception3', 'inception_v3']
 
@@ -53,7 +53,7 @@ class Inception3(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-                import scipy.stats as stats
+
                 stddev = m.stddev if hasattr(m, 'stddev') else 0.1
                 X = stats.truncnorm(-2, 2, scale=stddev)
                 values = torch.Tensor(X.rvs(m.weight.data.numel()))
@@ -314,6 +314,20 @@ class BasicConv2d(nn.Module):
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
         self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
+        # self.scope = None
+
+    def set_hook(self,scope):
+        def backward_hook(module, grad_input, grad_output):
+            print scope, 'backward_hook'
+        def forward_hook(module, input, output):
+            print scope, 'forward_hook'
+        # self.fhook_handle = self.conv.register_forward_hook(forward_hook)
+        # self.bhook_handle = self.conv.register_backward_hook(backward_hook)
+    def remove_hook(self):
+        self.fhook_handle.remove()
+        self.bhook_handle.remove()
+
+
 
     def forward(self, x):
         x = self.conv(x)
