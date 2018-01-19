@@ -131,38 +131,14 @@ class FilterPrunner:
         self.reset()
 
     def reset(self):
-        # self.activations = []
-        # self.gradients = []
-        # self.grad_index = 0
-        # self.activation_to_layer = {}
         self.filter_ranks = {}
         self.index_to_layername = {}
         self.layername_to_index = {}
         self.hooks = []
+
     def remove_hooks(self):
         for h in self.hooks:
             h.remove()
-    # def compute_rank(self, grad):
-    #     activation_index = len(self.activations) - self.grad_index - 1
-    #     activation = self.activations[activation_index]
-    #     # print activation.size(), grad.size()
-    #     # print len(self.activations),self.grad_index
-    #     # print self.index_to_layername[activation_index]
-    #     # print '=='*20
-    #     values = \
-    #         torch.sum((activation * grad), dim=0,keepdim=True). \
-    #             sum(dim=2, keepdim=True).sum(dim=3, keepdim=True)[0, :, 0, 0].data
-    #
-    #     # Normalize the rank by the filter dimensions
-    #     values = \
-    #         values / (activation.size(0) * activation.size(2) * activation.size(3))
-    #
-    #     if activation_index not in self.filter_ranks:
-    #         self.filter_ranks[activation_index] = \
-    #             torch.FloatTensor(activation.size(1)).zero_().cuda()
-    #
-    #     self.filter_ranks[activation_index] += values
-    #     self.grad_index += 1
 
     def hook_generator(self, layername):
         def hook_func(grad):
@@ -201,31 +177,16 @@ class FilterPrunner:
     def get_prunning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)  # [(actv_idx, channel_idx, value), ...]
 
-        # After each of the k filters are prunned,
-        # the filter index of the next filters change since the model is smaller.
         filters_to_prune_per_layer = {}
         for (l, f, _) in filters_to_prune:
             if l not in filters_to_prune_per_layer:
                 filters_to_prune_per_layer[l] = []
             filters_to_prune_per_layer[l].append(f)
 
-        # for l in filters_to_prune_per_layer:
-        #     filters_to_prune_per_layer[l] = sorted(filters_to_prune_per_layer[l])
-        #     for i in range(len(filters_to_prune_per_layer[l])):
-        #         filters_to_prune_per_layer[l][i] = filters_to_prune_per_layer[l][i] - i
-        #
-        # filters_to_prune = []
-        # for l in filters_to_prune_per_layer:
-        #     for i in filters_to_prune_per_layer[l]:
-        #         filters_to_prune.append((l, i))
-
-        # return filters_to_prune
         return filters_to_prune_per_layer
 
     def forward(self, x):
         self.activations = []
-        self.gradients = []
-        self.grad_index = 0
         self.activation_to_layer = {}
         c = 0
         activation_index = 0
@@ -724,32 +685,6 @@ class PrunningFineTuner_Icep3:
         torch.save(model, "model_prunned.pth")
 
 
-class ModifiedVGG16Model(torch.nn.Module):
-    def __init__(self):
-        super(ModifiedVGG16Model, self).__init__()
-
-        model = models.vgg16(pretrained=True)
-        self.features = model.features
-
-        for param in self.features.parameters():
-            param.requires_grad = False
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(25088, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Linear(4096, 2))
-
-    def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
-
-
 if __name__ == '__main__':
     # model = models.inception_v3(pretrained=True)
     # model.fc = nn.Linear(2048, 2)
@@ -764,8 +699,8 @@ if __name__ == '__main__':
 
     isTrain = False
     isPrune = True
-    train_path = '/home/gserver/zhangchi/channel-prune/data/train1'
-    test_path = '/home/gserver/zhangchi/channel-prune/data/test1'
+    train_path = '/media/gserver/data/catavsdog/train1'
+    test_path = '/media/gserver/data/catavsdog/test1'
 
     if isTrain:
         model = models.inception_v3(pretrained=True,aux_logits=True, transform_input=False)
