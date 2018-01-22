@@ -50,7 +50,7 @@ def train(model,
                 t0 = t1
                 imgs,labels = data
 
-                if usecuda:
+                if usecuda>=1:
                     imgs = Variable(imgs.cuda())
                     labels = Variable(labels.cuda())
 
@@ -99,8 +99,20 @@ def train(model,
                 if epoch % save_inter == 0:
                     save_path = os.path.join(save_dir,
                                              'weights-%d-[%.4f].pth' % (epoch, epoch_acc))
-                    torch.save(model.state_dict(), save_path)
+                    if usecuda <= 1:
+                        torch.save(model.state_dict(), save_path)
+                    # multi gpu
+                    elif usecuda >=2:
+                        torch.save(model.module.state_dict(), save_path)
                     logging.info('saved model to %s' % (save_path))
                 t_e = time.time()
                 logging.info('----time cost: %d sec' % (t_e - t_s))
                 logging.info('===' * 20)
+
+    save_path = os.path.join(save_dir,'weights-%d-[%.4f].pth' % (epoch, epoch_acc))
+    if usecuda <= 1:
+        torch.save(model.state_dict(), save_path)
+    # multi gpu
+    elif usecuda >= 2:
+        torch.save(model.module.state_dict(), save_path)
+    logging.info('saved model to %s' % (save_path))
