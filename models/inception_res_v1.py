@@ -179,9 +179,9 @@ class Mixed_7a(nn.Module):
 
 
 class InceptionResnetV1(nn.Module):
-    def __init__(self, num_classes=20):
+    def __init__(self, num_classes=20, image_channel=3):
         super(InceptionResnetV1, self).__init__()
-        self.conv2d_1a = BasicConv2d(1, 32, kernel_size=3, stride=2, padding=1)
+        self.conv2d_1a = BasicConv2d(image_channel, 32, kernel_size=3, stride=2, padding=1)
         self.conv2d_2a = BasicConv2d(32, 32, kernel_size=3, stride=1, padding=1)  # 'same' padding
         self.conv2d_2b = BasicConv2d(32, 64, kernel_size=3, stride=1, padding=1)  # 'same' padding
         self.maxpool_3a = nn.MaxPool2d(3, stride=2, padding=1)
@@ -215,51 +215,49 @@ class InceptionResnetV1(nn.Module):
             Block8(scale=0.20),
             Block8(scale=0.20),
             Block8(scale=0.20),
-            Block8(scale=0.20),
-            Block8(scale=0.20),
-            Block8(scale=0.20),
-            Block8(scale=0.20),
             Block8(scale=0.20)
         )
         self.block8 = Block8(noReLU=True)
-        self.avgpool_1a = nn.AvgPool2d(2, count_include_pad=False)
+        # self.avgpool_1a = nn.AvgPool2d(2, count_include_pad=False)
+        self.avgpool_1a = nn.AdaptiveAvgPool2d((1,1))
+
         self.dropout = nn.Dropout(0.2) # proba of an element to be zeroed
         self.fc = nn.Linear(1792, num_classes)
 
     def forward(self,x):
 
-        # n x 3 x 112 x 96
+        # 3 x 112 x 96
         x = self.conv2d_1a(x)
-        # n x 32 x 56 x 48
+        # 32 x 56 x 48
         x = self.conv2d_2a(x)
-        # n x 32 x 59 x 48
+        # 32 x 59 x 48
         x = self.conv2d_2b(x)
-        # n x 64 x 56 x 48
+        # 64 x 56 x 48
         x = self.maxpool_3a(x)
-        # n x 64 x 28 x 24
+        # 64 x 28 x 24
         x = self.conv2d_3b(x)
-        # n x 80 x 28 x 24
+        # 80 x 28 x 24
         x = self.conv2d_4a(x)
-        # n x 192 x 28 x 24
+        # 192 x 28 x 24
         x = self.conv2d_4b(x)
-        # n x 256 x 14 x 12
+        # 256 x 14 x 12
         x = self.repeat_block35(x)
-        # n x 256 x 14 x 12
+        # 256 x 14 x 12
         x = self.mixed_6a(x)
-        # n x 896 x 6 x 5
+        # 896 x 6 x 5
         x = self.repeat_block17(x)
-        # n x 896 x 6 x 5
+        # 896 x 6 x 5
         x = self.mixed_7a(x)
-        # n x 1792 x 2 x 2
+        # 1792 x 2 x 2
         x = self.repeat_block8(x)
-        # n x 1792 x 2 x 2
+        # 1792 x 2 x 2
         x = self.block8(x)
-        # n x 1792 x 2 x 2
+        # 1792 x 2 x 2
         x = self.avgpool_1a(x)
-        # n x 1792 x 1 x 1
+        # 1792 x 1 x 1
         x = x.view(x.size(0), -1)
         x = self.dropout(x)
-        # n x 1792
+        # 1792
         x = self.fc(x)
         return x
 
