@@ -11,3 +11,7 @@
 - You can use PyTorch's pretrained **Resnet50** or **InceptionV3** as a base model and prune them on the cat-vs-dog dataset mentioned before.\
 (See prune_InceptionV3_example.py and prune_Resnet50_example.py)
 - To prune a new model, you need to define a **forward** function and a **prune_conv_layer** function under **FilterPruner** according to your model's architecture. 
+
+
+TODO:
+Change pruner's forward to a more readable style. 
